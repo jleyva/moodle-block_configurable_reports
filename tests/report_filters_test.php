@@ -175,6 +175,46 @@ final class report_filters_test extends advanced_testcase {
     }
 
     /**
+     * The course field filter only offers the values of the courses the report conditions select.
+     */
+    public function test_course_field_options(): void {
+        global $CFG;
+
+        require_once($CFG->libdir . '/formslib.php');
+        require_once($CFG->dirroot . '/blocks/configurable_reports/reports/courses/report.class.php');
+
+        $this->getDataGenerator()->create_course(['shortname' => 'crshown']);
+        $this->getDataGenerator()->create_course(['shortname' => 'crhidden', 'visible' => 0]);
+
+        $components = [
+            'conditions' => [
+                'elements' => [
+                    [
+                        'id' => 'c1',
+                        'pluginname' => 'ccoursefield',
+                        'formdata' => (object) ['field' => 'shortname', 'operator' => '=', 'value' => 'crshown'],
+                    ],
+                ],
+                'config' => (object) ['conditionexpr' => 'c1'],
+            ],
+        ];
+        $report = (object) ['id' => 0, 'type' => 'courses', 'components' => cr_serialize($components),
+            'courseid' => SITEID, 'remote' => 0];
+        $classname = cr_require_component_plugin('filters', 'fcoursefield');
+        $filter = new $classname($report);
+
+        $mform = new \MoodleQuickForm('filters', 'post', '');
+        $filter->print_filter($mform, (object) ['field' => 'shortname']);
+
+        $options = [];
+        foreach ($mform->getElement('filter_fcoursefield_shortname')->_options as $option) {
+            $options[] = $option['text'];
+        }
+        $this->assertContains('crshown', $options);
+        $this->assertNotContains('crhidden', $options);
+    }
+
+    /**
      * User field search filter keeps the users with the selected value, in a user column or a custom profile field.
      */
     public function test_user_field_search(): void {
