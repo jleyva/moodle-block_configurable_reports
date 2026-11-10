@@ -54,6 +54,7 @@ $string['reportlimit'] = "Report row limit";
 $string['reportlimitinfo'] = "Limit the number of rows that are displayed in the report table
     (Default is 5000 rows. Better to have some limit, so users will not over load the DB engine)";
 
+$string['cachedef_graphdata'] = 'Chart data of the reports shown in the session';
 $string['configurable_reports:addinstance'] = 'Add a new configurable reports block';
 $string['configurable_reports:myaddinstance'] = 'Add a new configurable reports block to MY HOME page';
 $string['configurable_reports:manageownreports'] = "Manage own reports";

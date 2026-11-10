@@ -72,9 +72,9 @@ if (!empty($graphs)) {
     foreach ($graphs as $g) {
         $classname = cr_require_component_plugin('plot', $g['pluginname']);
         if ($g['id'] == $id) {
-            $class = new $classname($report);
-            $series = $class->get_series($g['formdata']);
-            $colors = $class->get_color_palette($g['formdata']);
+            $data = cr_get_graph_data($report->id, $id);
+            $series = $data['series'] ?? [[], []];
+            $colors = $data['colors'] ?? [];
             break;
         }
     }
@@ -114,7 +114,7 @@ if (!empty($graphs)) {
 
         $fontpath = $CFG->dirroot . "/blocks/configurable_reports/lib/pChart2/fonts";
         $width = 450;
-        // The series come from the request, so bound the canvas they size.
+        // A report can have many rows, so bound the canvas they size.
         $height = min(200 + (count($series[0]) * 10), 4000);
         $radius = 90;
 

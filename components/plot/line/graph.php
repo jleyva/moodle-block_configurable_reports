@@ -74,15 +74,15 @@ if (!empty($graphs)) {
     foreach ($graphs as $g) {
         $classname = cr_require_component_plugin('plot', $g['pluginname']);
         if ($g['id'] == $id) {
-            $class = new $classname($report);
-            $series = $class->get_series($g['formdata']);
+            $data = cr_get_graph_data($report->id, $id);
+            $series = $data['series'] ?? [];
             break;
         }
     }
 
     if ($g['id'] == $id) {
-        $min = optional_param('min', 0, PARAM_INT);
-        $max = optional_param('max', 0, PARAM_INT);
+        $min = $data['min'] ?? 0;
+        $max = $data['max'] ?? 0;
         $abcise = optional_param('abcise', -1, PARAM_INT);
 
         $abciselabel = [];
@@ -148,7 +148,7 @@ if (!empty($graphs)) {
             $measure->myData = $dataset;
             $measure->setFontProperties($fontsettings);
             [$legendwidth, $legendheight] = array_values($measure->getLegendSize($legendsettings));
-            // The series come from the request, so bound the canvas their legend sizes.
+            // A report can have many series, so bound the canvas their legend sizes.
             $width = min(max($width, $legendwidth + 300), 4000);
             $height = min(max($height, $legendheight + 2 * $padding), 4000);
         }
