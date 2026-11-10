@@ -215,6 +215,32 @@ final class report_filters_test extends advanced_testcase {
     }
 
     /**
+     * The user and course filters of a SQL report offer every user and course, without binding all their ids.
+     */
+    public function test_sql_report_filter_options(): void {
+        global $CFG;
+
+        require_once($CFG->libdir . '/formslib.php');
+        require_once($CFG->dirroot . '/blocks/configurable_reports/reports/sql/report.class.php');
+
+        $user = $this->getDataGenerator()->create_user(['firstname' => 'Ada', 'lastname' => 'Lovelace']);
+        $deleted = $this->getDataGenerator()->create_user();
+        delete_user($deleted);
+        $course = $this->getDataGenerator()->create_course(['fullname' => 'Engines']);
+
+        $mform = new \MoodleQuickForm('filters', 'post', '');
+        $this->filter('users', 'sql')->print_filter($mform);
+        $this->filter('courses', 'sql')->print_filter($mform);
+
+        $userids = array_column(array_column($mform->getElement('filter_users')->_options, 'attr'), 'value');
+        $this->assertContains((int) $user->id, $userids);
+        $this->assertNotContains((int) $deleted->id, $userids);
+
+        $courseids = array_column(array_column($mform->getElement('filter_courses')->_options, 'attr'), 'value');
+        $this->assertContains((int) $course->id, $courseids);
+    }
+
+    /**
      * User field search filter keeps the users with the selected value, in a user column or a custom profile field.
      */
     public function test_user_field_search(): void {

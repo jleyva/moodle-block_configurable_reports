@@ -171,21 +171,27 @@ class plugin_fsearchuserfield extends filter_base {
         $reportclass = new $reportclassname($this->report);
 
         if ($this->report->type === 'sql') {
-            $userlist = array_keys($remotedb->get_records('user'));
+            // SQL reports have no conditions, so the values of every user are options.
+            $userlist = null;
         } else {
             $components = cr_unserialize($this->report->components);
             $conditions = $components['conditions'] ?? null;
             $userlist = $reportclass->elements_by_conditions($conditions);
         }
 
-        if (!empty($userlist)) {
+        if ($userlist === null) {
+            [$insql, $inparams] = ['IN (SELECT id FROM {user} WHERE deleted = 0)', []];
+        } else if (!empty($userlist)) {
+            [$insql, $inparams] = $remotedb->get_in_or_equal($userlist);
+        }
+
+        if (isset($insql)) {
 
             if (strpos($formdata->field, 'profile_') === 0) {
                 $conditions = ['shortname' => str_replace('profile_', '', $formdata->field)];
                 if ($field = $remotedb->get_record('user_info_field', $conditions)) {
                     $selectname = $field->name;
 
-                    [$insql, $inparams] = $remotedb->get_in_or_equal($userlist);
                     $sql = "SELECT DISTINCT(data) as data FROM {user_info_data} WHERE fieldid = ? AND userid $insql";
                     $params = array_merge([$field->id], $inparams);
 
@@ -199,7 +205,6 @@ class plugin_fsearchuserfield extends filter_base {
             } else {
                 $selectname = s($formdata->field);
 
-                [$insql, $inparams] = $remotedb->get_in_or_equal($userlist);
                 $columns = $remotedb->get_columns('user');
 
                 if (!array_key_exists($formdata->field, $columns)) {

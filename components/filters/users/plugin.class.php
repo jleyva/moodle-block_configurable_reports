@@ -119,13 +119,14 @@ class plugin_users extends filter_base {
 
             $userslist = $reportclass->elements_by_conditions($conditions);
         } else {
-            $userslist = array_keys($remotedb->get_records('user'));
+            // SQL reports have no conditions, so every user is an option.
+            $userslist = null;
         }
 
         $usersoptions = [];
         $usersoptions[0] = get_string('filter_all', 'block_configurable_reports');
 
-        if (!empty($userslist)) {
+        if ($userslist === null || !empty($userslist)) {
             if (has_capability('moodle/site:viewfullnames', $PAGE->context)) {
                 $nameformat = $CFG->alternativefullnameformat;
             } else {
@@ -140,8 +141,13 @@ class plugin_users extends filter_base {
             $allnames = \core_user\fields::for_name()->get_sql('', false, '', '', false)->selects;
             $sort = implode(',', order_in_string($namesArray, $nameformat));
 
-            [$usql, $params] = $remotedb->get_in_or_equal($userslist);
-            $users = $remotedb->get_records_select('user', "id " . $usql, $params, $sort, 'id,' . $allnames);
+            if ($userslist === null) {
+                [$select, $params] = ['deleted = 0', []];
+            } else {
+                [$usql, $params] = $remotedb->get_in_or_equal($userslist);
+                $select = "id $usql";
+            }
+            $users = $remotedb->get_records_select('user', $select, $params, $sort, 'id,' . $allnames);
 
             foreach ($users as $c) {
                 $usersoptions[$c->id] = fullname($c);

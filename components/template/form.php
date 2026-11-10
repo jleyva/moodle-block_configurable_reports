@@ -64,23 +64,8 @@ class template_form extends moodleform {
             $reportclassname = 'report_' . $report->type;
             $reportclass = new $reportclassname($report);
 
-            $components = cr_unserialize($report->components);
-            $config = (isset($components['customsql']['config'])) ? $components['customsql']['config'] : new stdclass;
-
-            if (isset($config->querysql)) {
-
-                $sql = $config->querysql;
-                [$sql, $params] = $reportclass->prepare_sql($sql);
-                if ($rs = $reportclass->execute_query($sql, $params)) {
-                    foreach ($rs as $row) {
-                        $i = 0;
-                        foreach ($row as $colname => $value) {
-                            $options[$i] = str_replace('_', ' ', $colname);
-                            $i++;
-                        }
-                        break;
-                    }
-                }
+            foreach ($reportclass->get_column_names() as $i => $colname) {
+                $options[$i] = str_replace('_', ' ', $colname);
             }
         }
 

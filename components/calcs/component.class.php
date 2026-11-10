@@ -85,24 +85,8 @@ class component_calcs extends component_base {
             $reportclassname = 'report_' . $this->config->type;
             $reportclass = new $reportclassname($this->config);
 
-            $components = cr_unserialize($this->config->components);
-            $config = $components['customsql']['config'] ?? (object) [];
-
-            if (isset($config->querysql)) {
-
-                $sql = $config->querysql;
-                [$sql, $params] = $reportclass->prepare_sql($sql);
-                if ($rs = $reportclass->execute_query($sql, $params)) {
-                    foreach ($rs as $row) {
-                        $i = 0;
-                        foreach ($row as $colname => $value) {
-                            $options[$i] = str_replace('_', ' ', $colname);
-                            $i++;
-                        }
-                        break;
-                    }
-                    $rs->close();
-                }
+            foreach ($reportclass->get_column_names() as $i => $colname) {
+                $options[$i] = str_replace('_', ' ', $colname);
             }
         }
 

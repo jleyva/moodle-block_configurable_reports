@@ -184,6 +184,24 @@ final class sql_report_test extends advanced_testcase {
     }
 
     /**
+     * The column names come from one row of the query, which leaves the report execution time alone.
+     */
+    public function test_column_names_read_one_row(): void {
+        global $DB;
+
+        $record = $this->create_report();
+        $DB->set_field('block_configurable_reports', 'lastexecutiontime', 123, ['id' => $record->id]);
+        $report = new \report_sql($DB->get_record('block_configurable_reports', ['id' => $record->id]));
+
+        $this->assertSame(['username', 'userid'], $report->get_column_names());
+        $this->assertEquals(123, $DB->get_field('block_configurable_reports', 'lastexecutiontime', ['id' => $record->id]));
+
+        $query = "SELECT u.username, u.city FROM {user} u ORDER BY u.username LIMIT 2 OFFSET 1";
+        $report = new \report_sql($this->create_report($query, []));
+        $this->assertSame(['username', 'city'], $report->get_column_names());
+    }
+
+    /**
      * The query cannot ask for more rows than the site's report limit.
      */
     public function test_a_query_limit_above_the_report_limit_is_capped(): void {

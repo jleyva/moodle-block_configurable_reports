@@ -118,6 +118,11 @@ abstract class report_base {
     public ?object $config;
 
     /**
+     * @var moodle_database|null The connection to the remote database, shared by the reports of the request.
+     */
+    private static ?moodle_database $remotedbconnection = null;
+
+    /**
      * reports_base
      *
      * @param object|int $report
@@ -145,9 +150,13 @@ abstract class report_base {
 
         if (!empty($remotedbhost) && !empty($remotedbname) && !empty($remotedbuser) && !empty($remotedbpass) &&
             $this->config->remote) {
-            $dbclass = get_class($DB);
-            $remotedb = new $dbclass();
-            $remotedb->connect($remotedbhost, $remotedbuser, $remotedbpass, $remotedbname, $CFG->prefix);
+            // Connect once per request, not every time a report object is built.
+            if (self::$remotedbconnection === null) {
+                $dbclass = get_class($DB);
+                self::$remotedbconnection = new $dbclass();
+                self::$remotedbconnection->connect($remotedbhost, $remotedbuser, $remotedbpass, $remotedbname, $CFG->prefix);
+            }
+            $remotedb = self::$remotedbconnection;
         } else {
             $remotedb = $DB;
         }
@@ -395,8 +404,7 @@ abstract class report_base {
      *
      * Databases cap how many parameters one query may bind, and a report with no conditions ends up
      * holding every id in the table, so binding one parameter each fails outright on a large site.
-     * Past that size, read the table once in the order asked for and keep the rows wanted:
-     * array_intersect_key goes by the first argument, so the ordering survives.
+     * Past that size, read the table once in the order asked for and keep the rows wanted.
      *
      * @param string $table
      * @param array $elements Ids of the rows to return.
@@ -416,10 +424,18 @@ abstract class report_base {
             return $DB->get_records_select($table, "id $usql", $params, $sqlorder);
         }
 
-        return array_intersect_key(
-            $DB->get_records_select($table, '', [], $sqlorder),
-            array_flip($elements)
-        );
+        // Go through the table one row at a time, so only the rows wanted are kept in memory.
+        $wanted = array_flip($elements);
+        $rows = [];
+        $rs = $DB->get_recordset_select($table, '', [], $sqlorder);
+        foreach ($rs as $row) {
+            if (isset($wanted[$row->id])) {
+                $rows[$row->id] = $row;
+            }
+        }
+        $rs->close();
+
+        return $rows;
     }
 
     /**

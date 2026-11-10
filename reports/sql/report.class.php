@@ -337,13 +337,47 @@ class report_sql extends report_base {
     }
 
     /**
+     * The column names of the report query.
+     *
+     * Forms and calculation summaries only need the names, so the query is run once per request for its first row.
+     *
+     * @return string[] The names, in the order of the query columns.
+     */
+    public function get_column_names(): array {
+        static $cache = [];
+
+        $components = cr_unserialize($this->config->components);
+        if (!isset($components['customsql']['config']->querysql)) {
+            return [];
+        }
+
+        [$sql, $params] = $this->prepare_sql($components['customsql']['config']->querysql);
+        $key = sha1(serialize([$sql, $params]));
+        if (!isset($cache[$key])) {
+            $cache[$key] = [];
+            $rs = $this->execute_query($sql, $params, 1);
+            if ($rs instanceof moodle_recordset) {
+                foreach ($rs as $row) {
+                    $cache[$key] = array_keys((array) $row);
+                    break;
+                }
+                $rs->close();
+            }
+        }
+
+        return $cache[$key];
+    }
+
+    /**
      * execute_query
      *
      * @param string $sql
      * @param array $params
+     * @param int $limitnum Only read these first rows, for a look at the columns. The report limit and execution time are
+     *     left as they are then.
      * @return mixed
      */
-    public function execute_query($sql, $params = []) {
+    public function execute_query($sql, $params = [], int $limitnum = 0) {
         global $DB, $CFG;
 
         // Imported reports do not go through the form validation, so check the query every time it runs.
@@ -361,6 +395,10 @@ class report_sql extends report_base {
         $starttime = microtime(true);
 
         if (preg_match('/\b(INSERT|INTO|CREATE)\b/i', $sql) && !empty($CFG->block_configurable_reports_enable_sql_execution)) {
+            if ($limitnum) {
+                // Statements writing data have no rows to look at.
+                return false;
+            }
             // Run special (dangerous) queries directly.
             $this->reportlimit = 0;
             $results = $DB->execute($sql, $params);
@@ -374,7 +412,12 @@ class report_sql extends report_base {
                 $querylimit = (int) $matches[1];
             }
 
-            if (isset($querylimit) && $querylimit <= $reportlimit) {
+            if ($limitnum) {
+                // A limit of 0 is no limit for Moodle.
+                $limitnum = max(1, min($limitnum, $querylimit ?? $limitnum));
+
+                return $DB->get_recordset_sql($sql, $params, $limitfrom, $limitnum);
+            } else if (isset($querylimit) && $querylimit <= $reportlimit) {
                 // The query's own limit is what cuts the result set, so nothing is truncated.
                 $this->reportlimit = 0;
                 $results = $DB->get_recordset_sql($sql, $params, $limitfrom, $querylimit);

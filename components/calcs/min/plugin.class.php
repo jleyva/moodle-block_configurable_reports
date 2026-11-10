@@ -75,26 +75,9 @@ class plugin_min extends plugin_base {
             $reportclassname = 'report_' . $this->report->type;
             $reportclass = new $reportclassname($this->report);
 
-            $components = cr_unserialize($this->report->components);
-            $config = $components['customsql']['config'] ?? new stdclass;
-
-            if (isset($config->querysql)) {
-
-                $sql = $config->querysql;
-                [$sql, $params] = $reportclass->prepare_sql($sql);
-                if ($rs = $reportclass->execute_query($sql, $params)) {
-                    foreach ($rs as $row) {
-                        $i = 0;
-                        foreach ($row as $colname => $value) {
-                            if ($i == $data->column) {
-                                return str_replace('_', ' ', $colname);
-                            }
-                            $i++;
-                        }
-                        break;
-                    }
-                    $rs->close();
-                }
+            $colnames = $reportclass->get_column_names();
+            if (isset($colnames[$data->column])) {
+                return str_replace('_', ' ', $colnames[$data->column]);
             }
         }
 

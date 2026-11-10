@@ -106,16 +106,23 @@ class plugin_courses extends filter_base {
 
             $courselist = $reportclass->elements_by_conditions($conditions);
         } else {
-            $courselist = array_keys($remotedb->get_records('course'));
+            // SQL reports have no conditions, so every course is an option.
+            $courselist = null;
         }
 
         $sortedcourseoptions = [];
         $courseoptions = [];
         $sortedcourseoptions[0] = get_string('filter_all', 'block_configurable_reports');
 
-        if (!empty($courselist)) {
+        $courses = [];
+        if ($courselist === null) {
+            $courses = $remotedb->get_records('course', null, '', 'id, fullname');
+        } else if (!empty($courselist)) {
             [$usql, $params] = $remotedb->get_in_or_equal($courselist);
-            $courses = $remotedb->get_records_select('course', "id $usql", $params);
+            $courses = $remotedb->get_records_select('course', "id $usql", $params, '', 'id, fullname');
+        }
+
+        if (!empty($courses)) {
 
             foreach ($courses as $c) {
                 $courseoptions[$c->id] = format_string($c->fullname);
