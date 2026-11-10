@@ -168,12 +168,17 @@ abstract class report_base {
     public function check_permissions(int $userid, context $context) {
         global $CFG;
 
-        if (has_capability('block/configurable_reports:manageownreports', $context, $userid) && $this->config->ownerid == $userid) {
-            return true;
-        }
+        // Managing a report is only checked in its own course, a global report runs in the caller's course too.
+        $homecontext = $this->get_home_context();
+        if ($homecontext) {
+            if (has_capability('block/configurable_reports:manageownreports', $homecontext, $userid) &&
+                    $this->config->ownerid == $userid) {
+                return true;
+            }
 
-        if (has_capability('block/configurable_reports:managereports', $context, $userid)) {
-            return true;
+            if (has_capability('block/configurable_reports:managereports', $homecontext, $userid)) {
+                return true;
+            }
         }
 
         if (empty($this->config->visible)) {
@@ -223,6 +228,23 @@ abstract class report_base {
         }
 
         return false;
+    }
+
+    /**
+     * The context of the course the report belongs to.
+     *
+     * A global report run in another course gets that course as courseid, so callers keep its own course in homecourseid.
+     *
+     * @return context|null Null when the course does not exist anymore.
+     */
+    public function get_home_context(): ?context {
+        $courseid = (int) ($this->config->homecourseid ?? $this->config->courseid);
+
+        if ($courseid === (int) SITEID) {
+            return context_system::instance();
+        }
+
+        return context_course::instance($courseid, IGNORE_MISSING) ?: null;
     }
 
     /**
