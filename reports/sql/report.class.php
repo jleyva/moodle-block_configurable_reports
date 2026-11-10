@@ -91,6 +91,16 @@ class report_sql extends report_base {
     private static function get_keywords_error(string $sql, bool $highsecurity): ?string {
         global $CFG;
 
+        // Functions that change data, the server or other connections, which no report needs whatever the setting.
+        // This list is not exhaustive: only users trusted as site administrators should write SQL reports.
+        if (preg_match('/\b(SETVAL|NEXTVAL|SET_CONFIG|PG_TERMINATE_BACKEND|PG_CANCEL_BACKEND|PG_RELOAD_CONF|' .
+                'PG_ROTATE_LOGFILE|PG_SWITCH_WAL|PG_CREATE_RESTORE_POINT|PG_PROMOTE|PG_\w*ADVISORY\w*|PG_STAT_RESET\w*|' .
+                'PG_READ_FILE|PG_READ_BINARY_FILE|PG_LS_DIR|PG_FILE_\w+|PG_NOTIFY|PG_LOGICAL_EMIT_MESSAGE|LO_IMPORT|' .
+                'LO_EXPORT|LO_UNLINK|LO_CREATE|LO_CREAT|LO_PUT|LO_FROM_BYTEA|LO_TRUNCATE|DBLINK\w*|GET_LOCK|RELEASE_LOCK|' .
+                'RELEASE_ALL_LOCKS|LOAD_FILE)\b/i', $sql)) {
+            return 'notallowedwords';
+        }
+
         if ($highsecurity) {
             if (preg_match('/\b(ALTER|CREATE|DELETE|DROP|GRANT|INSERT|INTO|TRUNCATE|UPDATE|SET|VACUUM|REINDEX|DISCARD|LOCK|' .
                     'EXEC|EXECUTE|UESCAPE)\b/i', $sql)) {

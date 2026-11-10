@@ -133,6 +133,20 @@ SQL;
             'unicode string with own escape' => ["SELECT U&'!0055PDATE prefix_config' UESCAPE '!'", 'notallowedwords',
                 'notallowedwords'],
 
+            // Functions with side effects.
+            'setval' => ["SELECT setval('prefix_user_id_seq', 1)", 'notallowedwords', 'notallowedwords'],
+            'schema qualified setval' => ["SELECT pg_catalog.setval('prefix_user_id_seq', 1)", 'notallowedwords',
+                'notallowedwords'],
+            'terminate backend' => ['SELECT pg_terminate_backend(pid) FROM pg_stat_activity', 'notallowedwords',
+                'notallowedwords'],
+            'comment before the parenthesis' => ['SELECT pg_cancel_backend /* x */ (pid) FROM pg_stat_activity',
+                'notallowedwords', 'notallowedwords'],
+            'advisory lock' => ['SELECT pg_try_advisory_lock(1)', 'notallowedwords', 'notallowedwords'],
+            'large object import' => ["SELECT lo_import('/etc/passwd')", 'notallowedwords', 'notallowedwords'],
+            'mysql lock' => ["SELECT GET_LOCK('lock', 10)", 'notallowedwords', 'notallowedwords'],
+            'mysql file' => ["SELECT LOAD_FILE('/etc/passwd')", 'notallowedwords', 'notallowedwords'],
+            'column named like a function' => ['SELECT id AS setvalue FROM prefix_user', null, null],
+
             // Statements that run SQL from a string or a procedure.
             'do block' => ["DO 'BEGIN PERFORM 1 END'", 'notselectquery', 'notselectquery'],
             'do block with dollar quotes' => ['DO $$BEGIN PERFORM 1 END$$', 'notselectquery', 'notselectquery'],

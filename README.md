@@ -25,6 +25,21 @@ documentation, tutorials and the SQL placeholder reference are in the
 
 Released versions are listed in [`CHANGELOG.md`](CHANGELOG.md).
 
+## Security of SQL reports
+
+SQL reports run their query on the Moodle database, so whoever writes them can
+read any data in it, including session ids, web service tokens and password
+hashes. Treat `block/configurable_reports:managesqlreports` as equivalent to
+site administration:
+
+- Only grant the capability to site administrators. No role has it by default.
+- List the users allowed to write SQL reports in the *SQL report users*
+  (`allowedsqlusers`) setting.
+- The *SQL Security* setting refuses queries that are not `SELECT` or `WITH`
+  statements, and a list of keywords and functions that change data. It is a
+  safeguard, not a sandbox: queries run with the database account Moodle uses,
+  which can change any data.
+
 ## Credits
 
 Author: Juan Leyva (<https://twitter.com/jleyvadelgado>)

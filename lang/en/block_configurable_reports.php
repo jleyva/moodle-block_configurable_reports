@@ -504,10 +504,10 @@ $string['sendemail'] = 'Send email';
 $string['taskruncronreports'] = 'Run the SQL reports scheduled to run daily';
 
 $string['sqlsecurity'] = 'SQL Security';
-$string['sqlsecurityinfo'] = 'Disable for executing SQL queries with statements for inserting data';
+$string['sqlsecurityinfo'] = 'Disable for executing SQL queries with statements for inserting data. This setting checks queries against a list of keywords and functions, it does not make SQL reports read only: users who can manage SQL reports can read any data in the database, such as session ids and web service tokens. Only grant block/configurable_reports:managesqlreports to site administrators.';
 $string['allowedsqlusers'] = 'SQL report users';
 $string['allowedsqlusersinfo'] =
-    'If you wish to only allow certain admin users to manage sql reports, add a list of usernames separated by commas. They must also have the block/configurable_reports:managesqlreports capability.';
+    'If you wish to only allow certain admin users to manage sql reports, add a list of usernames separated by commas. They must also have the block/configurable_reports:managesqlreports capability. Users who manage SQL reports can read any data in the database, so they should be trusted as site administrators.';
 $string['global'] = 'Global report';
 $string['enableglobal'] = 'This is a global report (accessible from any course)';
 $string['global_help'] =
