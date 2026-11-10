@@ -66,7 +66,7 @@ class plugin_startendtime extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         global $CFG;
 
         if ($CFG->version < 2011120100) {

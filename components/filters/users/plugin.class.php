@@ -82,7 +82,7 @@ class plugin_users extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         $filterusers = optional_param('filter_users', 0, PARAM_INT);
         $match = preg_match("/%%FILTER_SYSTEMUSER:([^%]+)%%/i", $sql, $output);
 

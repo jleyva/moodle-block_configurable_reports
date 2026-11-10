@@ -67,7 +67,7 @@ class plugin_fsearchuserfield extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         global $DB;
 
         $filterfuserfield = optional_param('filter_fuserfield_' . $data->field, 0, PARAM_RAW);

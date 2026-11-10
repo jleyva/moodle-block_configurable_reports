@@ -93,7 +93,7 @@ class plugin_coursemodules extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         global $remotedb;
 
         $filtercoursemoduleid = optional_param('filter_coursemodules', 0, PARAM_INT);

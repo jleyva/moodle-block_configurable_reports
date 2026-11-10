@@ -39,7 +39,7 @@ abstract class filter_base extends plugin_base {
      * @param ?\stdClass $data
      * @return array
      */
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         return [$sql, []];
     }
 

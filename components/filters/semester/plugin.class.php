@@ -78,7 +78,7 @@ class plugin_semester extends filter_base {
      * @param ?\stdClass $data
      * @return array
      */
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         global $DB;
         $filtersemester = optional_param('filter_semester', '', PARAM_TEXT);
 

@@ -81,7 +81,7 @@ class plugin_user extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         $filteruser = optional_param('filter_user', 0, PARAM_INT);
 
         $params = [];

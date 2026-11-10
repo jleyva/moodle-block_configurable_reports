@@ -78,7 +78,7 @@ class plugin_subcategories extends filter_base {
      * @return array
      */
     #[Override]
-    function execute_for_sql_report(string $sql, ?stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?stdClass $data = null): array {
         global $DB;
 
         $filtersubcategories = optional_param('filter_subcategories', 0, PARAM_INT);

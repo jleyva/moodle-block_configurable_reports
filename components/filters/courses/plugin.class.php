@@ -71,7 +71,7 @@ class plugin_courses extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         $filtercourses = optional_param('filter_courses', $data?->courseid ?? 0, PARAM_INT);
         $match = preg_match("/%%FILTER_COURSES:([^%]+)%%/i", $sql, $output);
         $params = [];

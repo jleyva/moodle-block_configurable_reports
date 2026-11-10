@@ -81,7 +81,7 @@ class plugin_enrolledstudents extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         $filterenrolledstudents = optional_param('filter_enrolledstudents', 0, PARAM_INT);
         if (!$filterenrolledstudents) {
             return [$sql, []];

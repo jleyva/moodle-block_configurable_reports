@@ -74,7 +74,7 @@ class plugin_searchtext extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         // For backwards compatibility and filters without idnumber, includes old method of matching without idnumber.
         if (!empty($data->idnumber)) {
             $filtersearchtext = optional_param('filter_searchtext_' . $data->idnumber, '', PARAM_RAW);

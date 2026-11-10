@@ -72,7 +72,7 @@ class plugin_yearnumeric extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         global $DB;
 
         $filteryearnumeric = optional_param('filter_yearnumeric', 0, PARAM_INT);

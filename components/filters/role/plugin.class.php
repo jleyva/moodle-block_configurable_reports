@@ -82,7 +82,7 @@ class plugin_role extends filter_base {
     }
 
     #[\Override]
-    function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
+    public function execute_for_sql_report(string $sql, ?\stdClass $data = null): array {
         $filterrole = optional_param('filter_role', 0, PARAM_INT);
         if (!$filterrole) {
             return [$sql, []];
