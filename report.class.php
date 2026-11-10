@@ -103,6 +103,11 @@ abstract class report_base {
     public $filterform = null;
 
     /**
+     * @var array|null The filter values of the request, see get_filter_params().
+     */
+    protected ?array $filterparams = null;
+
+    /**
      * @var int
      */
     public int $currentcourseid = 0;
@@ -286,27 +291,11 @@ abstract class report_base {
         $filters = $components['filters']['elements'] ?? [];
 
         if (!empty($filters)) {
-
-            $formdata = new stdclass;
-            $request = array_merge($_POST, $_GET);
-            if ($request) {
-                foreach ($request as $key => $val) {
-                    if (strpos($key, 'filter_') !== false) {
-                        $key = clean_param($key, PARAM_CLEANHTML);
-                        if (is_array($val)) {
-                            $val = clean_param_array($val, PARAM_CLEANHTML);
-                        } else {
-                            $val = clean_param($val, PARAM_CLEANHTML);
-                        }
-                        $formdata->{$key} = $val;
-                    }
-                }
-            }
-
             require_once('filter_form.php');
             $filterform = new report_edit_form(null, $this);
 
-            $filterform->set_data($formdata);
+            $this->filterparams = $this->read_filter_params($filterform->get_filter_names());
+            $filterform->set_data((object) $this->filterparams);
 
             if ($filterform->is_cancelled()) {
                 $params = ['id' => $this->config->id, 'courseid' => $this->config->courseid];
@@ -315,6 +304,71 @@ abstract class report_base {
             }
             $this->filterform = $filterform;
         }
+    }
+
+    /**
+     * The filter values of the request, keyed by parameter name.
+     *
+     * Filters read their own values with optional_param(), and the links to the other pages and the exports of the
+     * report carry them on. Before check_filters_request() builds the filter form, only filter_var is known.
+     *
+     * @return array
+     */
+    public function get_filter_params(): array {
+        if ($this->filterparams === null) {
+            return $this->read_filter_params([]);
+        }
+
+        return $this->filterparams;
+    }
+
+    /**
+     * Read the filter values of the request.
+     *
+     * @param bool[] $names The names of the filter form elements, and whether each one submits an array.
+     * @return array
+     */
+    protected function read_filter_params(array $names): array {
+        // SQL reports take filter_var from the URL, there is no element for it in the filter form.
+        $names += ['filter_var' => false];
+
+        $params = [];
+        foreach ($names as $name => $isarray) {
+            if ($isarray) {
+                $value = optional_param_array($name, [], PARAM_CLEANHTML);
+            } else {
+                $value = optional_param($name, '', PARAM_CLEANHTML);
+            }
+            if ($value !== '' && $value !== []) {
+                $params[$name] = $value;
+            }
+        }
+
+        return $params;
+    }
+
+    /**
+     * The filter values of the request as a URL query string, to carry them on in links.
+     *
+     * Keys and values are URL-encoded, otherwise a "+" in a filter value (base64 user fields) turns into a space.
+     * moodle_url only takes array parameters from Moodle 4.3, so the query string is built here.
+     *
+     * @return string The query string, starting with "&" unless it is empty.
+     */
+    protected function get_filter_query(): string {
+        $query = '';
+        foreach ($this->get_filter_params() as $key => $val) {
+            $key = rawurlencode($key);
+            if (is_array($val)) {
+                foreach ($val as $k => $v) {
+                    $query .= '&' . $key . '[' . rawurlencode($k) . ']=' . rawurlencode($v);
+                }
+            } else {
+                $query .= '&' . $key . '=' . rawurlencode($val);
+            }
+        }
+
+        return $query;
     }
 
     /**
@@ -414,27 +468,8 @@ abstract class report_base {
     public function print_export_options(bool $return = false) {
         global $CFG;
 
-        // TODO move to more Moodle approach.
-        $request = array_merge($_POST, $_GET);
-        unset($request['download'], $request['format']);
-
-        // Keys and values are URL-encoded, otherwise a "+" in a filter value (base64 user fields) turns into a space.
-        // moodle_url only takes array parameters from Moodle 4.3, so the query string is built here.
-        $id = isset($request['id']) ? clean_param($request['id'], PARAM_INT) : $this->config->id;
-        unset($request['id']);
-        $query = ['id=' . $id];
-        foreach ($request as $key => $val) {
-            $key = rawurlencode(clean_param($key, PARAM_CLEANHTML));
-            if (is_array($val)) {
-                foreach ($val as $k => $v) {
-                    $query[] = $key . '[' . rawurlencode(clean_param($k, PARAM_CLEANHTML)) . ']=' .
-                        rawurlencode(clean_param($v, PARAM_CLEANHTML));
-                }
-            } else {
-                $query[] = $key . '=' . rawurlencode(clean_param($val, PARAM_CLEANHTML));
-            }
-        }
-        $wwwpath = $CFG->wwwroot . '/blocks/configurable_reports/viewreport.php?' . implode('&', $query);
+        $wwwpath = $CFG->wwwroot . '/blocks/configurable_reports/viewreport.php?id=' . ((int) $this->config->id) .
+            '&courseid=' . ((int) $this->config->courseid) . $this->get_filter_query();
 
         $output = '';
         $export = explode(',', $this->config->export);
@@ -867,33 +902,14 @@ abstract class report_base {
         $pagination = '';
         if ($this->config->pagination) {
             $page = optional_param('page', 0, PARAM_INT);
-            $postfiltervars = '';
-            $request = array_merge($_POST, $_GET);
-            if ($request) {
-                foreach ($request as $key => $val) {
-                    if (strpos($key, 'filter_') !== false) {
-                        $key = s(clean_param($key, PARAM_CLEANHTML));
-                        if (is_array($val)) {
-                            foreach ($val as $k => $v) {
-                                $k = s(clean_param($k, PARAM_CLEANHTML));
-                                $v = s(clean_param($v, PARAM_CLEANHTML));
-                                $postfiltervars .= "&amp;{$key}[$k]=" . $v;
-                            }
-                        } else {
-                            $val = s(clean_param($val, PARAM_CLEANHTML));
-                            $postfiltervars .= "&amp;$key=" . $val;
-                        }
-                    }
-                }
-            }
 
             $this->totalrecords = count($this->finalreport->table->data);
             $pagingbar = new paging_bar(
                 $this->totalrecords,
                 $page,
                 $this->config->pagination,
-                "viewreport.php?id=" . s($this->config->id) . "&courseid=" . ((int) $this->config->courseid) .
-                "$postfiltervars&amp;"
+                "viewreport.php?id=" . ((int) $this->config->id) . "&courseid=" . ((int) $this->config->courseid) .
+                $this->get_filter_query()
             );
             $pagingbar->pagevar = 'page';
             $pagination = $OUTPUT->render($pagingbar);
@@ -1039,31 +1055,12 @@ abstract class report_base {
             cr_print_table($this->finalreport->table);
 
             if ($this->config->pagination) {
-                $postfiltervars = '';
-                $request = array_merge($_POST, $_GET);
-                if ($request) {
-                    foreach ($request as $key => $val) {
-                        if (strpos($key, 'filter_') !== false) {
-                            $key = s(clean_param($key, PARAM_CLEANHTML));
-                            if (is_array($val)) {
-                                foreach ($val as $k => $v) {
-                                    $k = s(clean_param($k, PARAM_CLEANHTML));
-                                    $v = s(clean_param($v, PARAM_CLEANHTML));
-                                    $postfiltervars .= "&amp;{$key}[$k]=" . $v;
-                                }
-                            } else {
-                                $val = s(clean_param($val, PARAM_CLEANHTML));
-                                $postfiltervars .= "&amp;$key=" . $val;
-                            }
-                        }
-                    }
-                }
-
                 $pagingbar = new paging_bar(
                     $this->totalrecords,
                     $page,
                     $this->config->pagination,
-                    "viewreport.php?id=" . s($this->config->id) . "&courseid=" . s($this->config->courseid) . "$postfiltervars&amp;"
+                    "viewreport.php?id=" . ((int) $this->config->id) . "&courseid=" . ((int) $this->config->courseid) .
+                    $this->get_filter_query()
                 );
                 $pagingbar->pagevar = 'page';
                 echo $OUTPUT->render($pagingbar);

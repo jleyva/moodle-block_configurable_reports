@@ -57,4 +57,22 @@ class report_edit_form extends moodleform {
         $this->add_action_buttons(true, get_string('filter_apply', 'block_configurable_reports'));
     }
 
+    /**
+     * The names of the filter elements, and whether each one submits an array, like the date selectors do.
+     *
+     * @return bool[]
+     */
+    public function get_filter_names(): array {
+        $names = [];
+        foreach ($this->_form->_elements as $element) {
+            $name = $element->getName();
+            if (strpos((string) $name, 'filter_') === 0) {
+                $names[$name] = $element instanceof MoodleQuickForm_group ||
+                    ($element instanceof MoodleQuickForm_select && $element->getMultiple());
+            }
+        }
+
+        return $names;
+    }
+
 }
