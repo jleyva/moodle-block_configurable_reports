@@ -41,6 +41,7 @@ require_once($CFG->dirroot . '/blocks/configurable_reports/locallib.php');
  */
 #[CoversFunction('cr_filter_date_to_timestamp')]
 #[CoversFunction('cr_get_field_name')]
+#[CoversFunction('cr_get_my_reports')]
 final class locallib_test extends advanced_testcase {
 
     /**
@@ -122,6 +123,27 @@ final class locallib_test extends advanced_testcase {
 
         $this->assertSame([], block_configurable_reports_repository_reports($error));
         $this->assertSame([], block_configurable_reports_repository_reports(null));
+    }
+
+    /**
+     * On the site, report managers get the reports of every course, whatever type SITEID has.
+     */
+    public function test_site_report_managers_get_every_report(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+        foreach ([SITEID, $course->id] as $courseid) {
+            $DB->insert_record('block_configurable_reports', (object) ['courseid' => $courseid, 'ownerid' => get_admin()->id,
+                'visible' => 1, 'name' => 'Report', 'summary' => '', 'type' => 'users', 'components' => cr_serialize([]),
+                'remote' => 0]);
+        }
+
+        $this->assertCount(2, cr_get_my_reports((int) SITEID, get_admin()->id));
+        $this->assertCount(1, cr_get_my_reports((int) SITEID, get_admin()->id, false));
+        $this->assertCount(1, cr_get_my_reports($course->id, get_admin()->id));
     }
 
 }
