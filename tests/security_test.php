@@ -47,8 +47,10 @@ require_once($CFG->dirroot . '/blocks/configurable_reports/components/conditions
  *
  * @package    block_configurable_reports
  * @covers     ::cr_import_xml
+ * @covers     ::cr_export_xml
  */
 #[CoversFunction('cr_import_xml')]
+#[CoversFunction('cr_export_xml')]
 final class security_test extends advanced_testcase {
 
     protected function setUp(): void {
@@ -184,6 +186,58 @@ final class security_test extends advanced_testcase {
         $this->assertEquals($USER->id, $report->ownerid);
         $this->assertEquals($SITE->id, $report->courseid);
         $this->assertNotEquals(999, $report->id);
+    }
+
+    /**
+     * A summary that closes its CDATA section is exported as text and cannot add fields to the import.
+     */
+    public function test_export_escapes_cdata_end(): void {
+        global $DB, $SITE, $USER;
+
+        $this->setAdminUser();
+
+        $components = base64_encode(cr_serialize([
+            'customsql' => ['config' => (object) ['querysql' => 'SELECT id, password FROM {user}']],
+        ]));
+        $summary = "x]]></summary><type><![CDATA[sql]]></type><components><![CDATA[$components]]></components>" .
+            '<summary><![CDATA[y';
+        $report = (object) [
+            'id' => 5,
+            'courseid' => $SITE->id,
+            'ownerid' => $USER->id,
+            'visible' => 1,
+            'name' => 'Courses',
+            'summary' => $summary,
+            'type' => 'courses',
+            'components' => cr_serialize([]),
+            'remote' => 0,
+        ];
+
+        $this->assertTrue(cr_import_xml(cr_export_xml($report, '2024051300'), $SITE));
+
+        $imported = $DB->get_record('block_configurable_reports', []);
+        $this->assertSame('courses', $imported->type);
+        $this->assertSame($summary, $imported->summary);
+        $this->assertArrayNotHasKey('customsql', cr_unserialize($imported->components));
+    }
+
+    /**
+     * An import file repeating a field is refused, whichever value comes first.
+     */
+    public function test_import_refuses_repeated_fields(): void {
+        global $DB, $SITE;
+
+        $this->setAdminUser();
+
+        $xml = str_replace('<type>', '<type><![CDATA[courses]]></type><type>', $this->build_import_xml('sql'));
+
+        try {
+            cr_import_xml($xml, $SITE);
+            $this->fail('Exception expected');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('errorimporting', $e->errorcode);
+        }
+        $this->assertFalse($DB->record_exists('block_configurable_reports', []));
     }
 
     /**
