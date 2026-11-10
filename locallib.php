@@ -526,7 +526,9 @@ function cr_print_table(object $table, bool $return = false) {
     }
     $output .= '</table>' . "\n";
     $output .= '<input type="hidden" name="courseid" value="' . $COURSE->id . '">';
-    if ($isuserid != -1) {
+    // The emails are sent from the current course, see send_emails.php.
+    $emailcontext = ($COURSE->id == SITEID) ? context_system::instance() : context_course::instance($COURSE->id);
+    if ($isuserid != -1 && has_capability('moodle/course:bulkmessaging', $emailcontext)) {
         $output .= html_writer::empty_tag('input', ['type' => 'submit', 'class' => 'btn btn-secondary',
             'value' => get_string('sendemail', 'block_configurable_reports')]);
     }

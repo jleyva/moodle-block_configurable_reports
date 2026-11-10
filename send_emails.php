@@ -44,6 +44,8 @@ $PAGE->set_url('/blocks/configurable_reports/send_emails.php', ['courseid' => $c
 if (!has_any_capability(['block/configurable_reports:managereports', 'block/configurable_reports:manageownreports'], $context)) {
     throw new moodle_exception('badpermissions', 'block_configurable_reports');
 }
+// Emailing a list of users is bulk messaging, which core restricts with its own capability.
+require_capability('moodle/course:bulkmessaging', $context);
 
 /**
  * Class sendemail_form
